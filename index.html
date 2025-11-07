@@ -1,164 +1,1475 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8">
-    <title>NaturaVida · Catálogo Interactivo</title>
-    <?!= include('head'); ?>
-  </head>
-  <body>
-    <?!= include('navbar'); ?>
+<head>
+  <meta charset="utf-8">
+  <title>NaturaVida · Catálogo Interactivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Catálogo interactivo de productos NaturaVida con integración a Google Sheets y Google Drive.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --color-primary: #16a34a;
+  --color-primary-soft: rgba(22, 163, 74, 0.12);
+  --color-secondary: #22c55e;
+  --color-bg: #020817;
+  --color-surface: #020817;
+  --color-surface-soft: #020817;
+  --color-border-subtle: rgba(148, 163, 253, 0.22);
+  --color-text: #e5e7eb;
+  --color-text-soft: #9ca3af;
+  --color-accent: #38bdf8;
+  --radius-xl: 24px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 18px 60px rgba(15, 23, 42, 0.9);
+  --shadow-subtle: 0 10px 35px rgba(15, 23, 42, 0.6);
+  --border-subtle: 1px solid var(--color-border-subtle);
+  --transition-fast: 0.18s ease-out;
+  --transition-med: 0.26s ease-out;
+  --font-sans: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
-    <header class="hero">
-      <div class="hero-content">
-        <div class="hero-text">
-          <h1>Catálogo NaturaVida</h1>
-          <p>Explorá un catálogo dinámico de productos naturales, conectado en tiempo real con Google Sheets y Google Drive para una gestión ágil, ordenada y visualmente elegante.</p>
-          <div class="hero-actions">
-            <button id="scrollToCatalogBtn" class="btn-primary">Ver productos</button>
-            <button id="adminToggleBtn" class="btn-ghost">Abrir panel de gestión</button>
-          </div>
-          <div class="hero-meta">
-            <span class="meta-pill">Actualización automática desde planilla</span>
-            <span class="meta-pill">Imágenes desde Google Drive</span>
-            <span class="meta-pill">Filtros, búsqueda y vista ampliada</span>
-          </div>
-        </div>
-        <div class="hero-preview">
-          <div class="hero-card">
-            <div class="hero-card-image"></div>
-            <div class="hero-card-body">
-              <h2>Experiencia de vitrina digital</h2>
-              <p>Panel responsivo con tarjetas, modal de detalle y efectos sutiles para destacar cada producto.</p>
-            </div>
-          </div>
-        </div>
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.11), transparent 55%),
+    radial-gradient(circle at top right, rgba(22, 163, 74, 0.11), transparent 50%),
+    radial-gradient(circle at bottom, rgba(129, 140, 248, 0.09), transparent 60%),
+    var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* Topbar */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(22px);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.04), transparent) rgba(2, 6, 23, 0.92);
+  border-bottom: var(--border-subtle);
+}
+
+.topbar-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 20% 0%, #22c55e, #16a34a);
+  color: #020817;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 10px 26px rgba(34, 197, 94, 0.55);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.brand-subtitle {
+  font-size: 10px;
+  color: var(--color-text-soft);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.nav-links a {
+  color: var(--color-text-soft);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
+}
+
+.nav-links a:hover {
+  color: var(--color-accent);
+  border-color: rgba(148, 163, 253, 0.36);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+/* Hero */
+
+.hero {
+  max-width: 1240px;
+  margin: 22px auto 10px auto;
+  padding: 22px 20px 18px 20px;
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 1.9fr 1.4fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.hero-text h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.01em;
+}
+
+.hero-text p {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 0 0 14px 0;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition-med);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #22c55e, #16a34a);
+  color: #020817;
+  font-weight: 600;
+  box-shadow: 0 12px 32px rgba(22, 163, 74, 0.6);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(22, 163, 74, 0.7);
+}
+
+.btn-secondary {
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(148, 163, 253, 0.22);
+  color: var(--color-text-soft);
+}
+
+.btn-secondary:hover {
+  color: var(--color-accent);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  color: var(--color-text-soft);
+}
+
+.btn-ghost:hover {
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--color-accent);
+  border-color: rgba(148, 163, 253, 0.4);
+}
+
+.btn-danger {
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.55);
+}
+
+.btn-danger:hover {
+  background: rgba(248, 113, 113, 0.22);
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid rgba(148, 163, 253, 0.26);
+  font-size: 9px;
+  color: var(--color-text-soft);
+}
+
+.hero-preview {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.hero-card {
+  flex: 1;
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.09), transparent),
+    radial-gradient(circle at bottom, rgba(56, 189, 248, 0.07), transparent),
+    rgba(2, 6, 23, 0.98);
+  box-shadow: var(--shadow-soft);
+  border: var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.hero-card-image {
+  height: 96px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(34, 197, 94, 0.25), transparent),
+    radial-gradient(circle at 80% 10%, rgba(56, 189, 248, 0.2), transparent),
+    linear-gradient(to bottom right, rgba(15, 23, 42, 1), rgba(15, 23, 42, 1));
+  border: 1px solid rgba(148, 163, 253, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card-body h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+}
+
+.hero-card-body p {
+  font-size: 10px;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+/* Layout */
+
+.layout {
+  max-width: 1240px;
+  margin: 0 auto 24px auto;
+  padding: 0 20px 28px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(280px, 0.95fr);
+  gap: 22px;
+  align-items: flex-start;
+}
+
+/* Filtros */
+
+.filters-section {
+  grid-column: 1 / 2;
+  padding: 14px 14px 12px 14px;
+  border-radius: var(--radius-xl);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent) rgba(2, 6, 23, 0.98);
+  border: var(--border-subtle);
+  box-shadow: var(--shadow-subtle);
+  margin-bottom: 10px;
+}
+
+.filters-header h2 {
+  margin: 0 0 2px 0;
+  font-size: 17px;
+}
+
+.filters-header p {
+  margin: 0 0 10px 0;
+  font-size: 10px;
+  color: var(--color-text-soft);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filter-item label {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-soft);
+  margin-bottom: 4px;
+}
+
+.filter-item input,
+.filter-item select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(75, 85, 99, 0.95);
+  background-color: rgba(2, 6, 23, 0.98);
+  color: var(--color-text);
+  font-size: 11px;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.filter-item input:focus,
+.filter-item select:focus {
+  border-color: rgba(56, 189, 248, 0.66);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+}
+
+/* Catálogo */
+
+.catalog-section {
+  grid-column: 1 / 2;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 3px;
+}
+
+.product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 18px;
+  background: radial-gradient(circle at top, rgba(22, 163, 74, 0.12), transparent) rgba(2, 6, 23, 0.98);
+  border: 1px solid rgba(75, 85, 99, 0.95);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.9);
+  cursor: pointer;
+  transition: var(--transition-med);
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 1);
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.product-image-wrap {
+  width: 100%;
+  height: 112px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 1), rgba(3, 7, 18, 1));
+  border: 1px solid rgba(75, 85, 99, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 8px;
+  background: rgba(2, 6, 23, 0.98);
+  border: 1px solid rgba(148, 163, 253, 0.4);
+  color: var(--color-accent);
+}
+
+.product-title {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 3px 0 0 0;
+}
+
+.product-category {
+  font-size: 9px;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.product-price {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.product-id {
+  font-size: 8px;
+  color: rgba(148, 163, 253, 0.7);
+}
+
+/* Empty state */
+
+.empty-state {
+  margin-top: 16px;
+  padding: 18px;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px dashed rgba(75, 85, 99, 0.9);
+  background: rgba(2, 6, 23, 0.98);
+  color: var(--color-text-soft);
+  box-shadow: var(--shadow-subtle);
+}
+
+.empty-state h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 10px;
+}
+
+/* Panel admin */
+
+.admin-panel {
+  position: sticky;
+  top: 78px;
+  align-self: flex-start;
+  padding: 14px 14px 12px 14px;
+  border-radius: var(--radius-xl);
+  background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent) rgba(2, 6, 23, 0.98);
+  border: var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  transition: var(--transition-med);
+}
+
+.admin-panel.collapsed {
+  max-height: 46px;
+  padding-bottom: 6px;
+  cursor: pointer;
+}
+
+.admin-panel.collapsed .admin-header p,
+.admin-panel.collapsed .form-grid {
+  display: none;
+}
+
+.admin-panel.collapsed .admin-header h2::after {
+  content: " (clic para expandir)";
+  font-weight: 400;
+  font-size: 9px;
+  color: var(--color-text-soft);
+}
+
+.admin-header h2 {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+}
+
+.admin-header p {
+  margin: 0 0 10px 0;
+  font-size: 9px;
+  color: var(--color-text-soft);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.field-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.field label {
+  font-size: 9px;
+  color: var(--color-text-soft);
+}
+
+.field input,
+.field textarea {
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(75, 85, 99, 0.98);
+  background-color: rgba(2, 6, 23, 0.98);
+  color: var(--color-text);
+  font-size: 10px;
+  outline: none;
+  transition: var(--transition-fast);
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.18);
+}
+
+.field small {
+  font-size: 8px;
+  color: var(--color-text-soft);
+}
+
+/* Modal */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.4), transparent) rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.modal-dialog {
+  position: relative;
+  z-index: 61;
+  max-width: 640px;
+  width: 92%;
+  border-radius: var(--radius-xl);
+  background: rgba(2, 6, 23, 0.99);
+  border: var(--border-subtle);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 1);
+  padding: 14px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  background: rgba(2, 6, 23, 0.98);
+  color: var(--color-text-soft);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.modal-close:hover {
+  color: var(--color-accent);
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 1.3fr 1.7fr;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.modal-image-wrap {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(75, 85, 99, 1);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 1), rgba(3, 7, 18, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-info h3 {
+  margin: 0 0 2px 0;
+  font-size: 16px;
+}
+
+.modal-category {
+  margin: 0 0 6px 0;
+  font-size: 9px;
+  color: var(--color-accent);
+}
+
+.modal-description {
+  margin: 0 0 6px 0;
+  font-size: 10px;
+  color: var(--color-text-soft);
+}
+
+.modal-price {
+  margin: 0 0 2px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.modal-id {
+  margin: 0;
+  font-size: 8px;
+  color: rgba(148, 163, 253, 0.7);
+}
+
+/* Loading overlay */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.5), transparent) rgba(2, 6, 23, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 80;
+}
+
+.loading-overlay.hidden {
+  display: none;
+}
+
+.loader {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 3px solid rgba(148, 163, 253, 0.33);
+  border-top-color: #22c55e;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-overlay p {
+  font-size: 11px;
+  color: var(--color-text-soft);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast */
+
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 9px 14px;
+  border-radius: 16px;
+  font-size: 10px;
+  background: rgba(2, 6, 23, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  color: var(--color-accent);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 1);
+  z-index: 90;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: var(--transition-med);
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.error {
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #fecaca;
+}
+
+/* Footer */
+
+.site-footer {
+  max-width: 1240px;
+  margin: 0 auto 14px auto;
+  padding: 0 20px;
+}
+
+.footer-inner {
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  background: rgba(2, 6, 23, 0.98);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.9);
+  font-size: 9px;
+  color: var(--color-text-soft);
+}
+
+.footer-meta {
+  margin-top: 2px;
+  font-size: 8px;
+  color: rgba(148, 163, 253, 0.9);
+}
+
+/* Utilidades */
+
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
+
+@media (max-width: 920px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-top: 14px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-panel {
+    order: 3;
+    position: static;
+    max-height: none;
+    margin-top: 6px;
+  }
+
+  .filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">NV</div>
+      <div class="brand-text">
+        <span class="brand-title">NaturaVida</span>
+        <span class="brand-subtitle">Catálogo Interactivo</span>
       </div>
-    </header>
+    </div>
+    <nav class="nav-links">
+      <a href="#catalogFilters">Explorar</a>
+      <a href="#catalogSection">Productos</a>
+      <a href="#adminPanel">Gestión</a>
+    </nav>
+  </div>
+</header>
 
-    <main class="layout">
-      <section class="filters-section" id="catalogFilters">
-        <div class="filters-header">
-          <h2>Explorar productos</h2>
-          <p>Aplicar búsqueda, filtros y ordenamientos en tiempo real sobre la información de la hoja de cálculo.</p>
-        </div>
-
-        <div class="filters-grid">
-          <div class="filter-item">
-            <label for="searchInput">Buscar</label>
-            <input type="search" id="searchInput" placeholder="Nombre, descripción o palabra clave">
-          </div>
-
-          <div class="filter-item">
-            <label for="filterCategory">Categoría</label>
-            <select id="filterCategory">
-              <option value="">Todas las categorías</option>
-            </select>
-          </div>
-
-          <div class="filter-item">
-            <label for="sortSelect">Ordenar por</label>
-            <select id="sortSelect">
-              <option value="name-asc">Nombre A a Z</option>
-              <option value="name-desc">Nombre Z a A</option>
-              <option value="price-asc">Precio menor a mayor</option>
-              <option value="price-desc">Precio mayor a menor</option>
-            </select>
-          </div>
-
-          <div class="filter-item">
-            <label>&nbsp;</label>
-            <button id="clearFiltersBtn" class="btn-secondary">Limpiar filtros</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="catalog-section" id="catalogSection">
-        <div id="catalogGrid" class="catalog-grid">
-          <!-- Tarjetas generadas dinámicamente -->
-        </div>
-        <div id="emptyState" class="empty-state hidden">
-          <h3>No se encontraron productos</h3>
-          <p>Verifique los filtros aplicados o registre nuevos productos desde el panel de gestión.</p>
-        </div>
-      </section>
-
-      <aside class="admin-panel collapsed" id="adminPanel">
-        <div class="admin-header">
-          <h2>Gestión de productos</h2>
-          <p>Formulario conectado a la hoja <strong>Productos</strong> para crear, actualizar y eliminar registros. Se utilizan los campos ID_Producto, Nombre_Producto, Categoria, Descripcion_Corta, Precio e Imagen_URL_1.</p>
-        </div>
-
-        <form id="productForm" class="form-grid">
-          <div class="field">
-            <label for="ID_Producto">ID Producto *</label>
-            <input type="text" id="ID_Producto" required>
-          </div>
-
-          <div class="field">
-            <label for="Nombre_Producto">Nombre del producto *</label>
-            <input type="text" id="Nombre_Producto" required>
-          </div>
-
-          <div class="field">
-            <label for="Categoria">Categoría</label>
-            <input type="text" id="Categoria" placeholder="Ejemplo: Cuidado facial, Suplementos">
-          </div>
-
-          <div class="field field-full">
-            <label for="Descripcion_Corta">Descripción corta</label>
-            <textarea id="Descripcion_Corta" rows="3" placeholder="Beneficios principales, modo de uso o componentes clave"></textarea>
-          </div>
-
-          <div class="field">
-            <label for="Precio">Precio</label>
-            <input type="number" id="Precio" step="0.01" min="0" placeholder="0.00">
-          </div>
-
-          <div class="field">
-            <label for="Imagen">Imagen del producto</label>
-            <input type="file" id="Imagen" accept="image/*">
-            <small>Si se selecciona una imagen, se cargará en la carpeta de Drive configurada y se actualizará el vínculo.</small>
-          </div>
-
-          <div class="field field-actions">
-            <button type="submit" class="btn-primary">Guardar o actualizar</button>
-            <button type="button" id="deleteBtn" class="btn-danger">Eliminar</button>
-            <button type="button" id="resetFormBtn" class="btn-ghost">Limpiar formulario</button>
-          </div>
-        </form>
-      </aside>
-    </main>
-
-    <!-- Modal de detalle de producto -->
-    <div id="productModal" class="modal hidden" aria-hidden="true">
-      <div class="modal-backdrop" id="modalBackdrop"></div>
-      <div class="modal-dialog">
-        <button class="modal-close" id="modalCloseBtn" aria-label="Cerrar detalle">&times;</button>
-        <div class="modal-body">
-          <div class="modal-image-wrap">
-            <img id="modalImage" alt="Imagen del producto seleccionado">
-          </div>
-          <div class="modal-info">
-            <h3 id="modalTitle"></h3>
-            <p id="modalCategory" class="modal-category"></p>
-            <p id="modalDescription" class="modal-description"></p>
-            <p id="modalPrice" class="modal-price"></p>
-            <p id="modalId" class="modal-id"></p>
-          </div>
+<header class="hero">
+  <div class="hero-content">
+    <div class="hero-text">
+      <h1>Catálogo NaturaVida</h1>
+      <p>Explorá un catálogo dinámico de productos naturales, conectado en tiempo real con Google Sheets y Google Drive para una gestión ágil, ordenada y visualmente elegante.</p>
+      <div class="hero-actions">
+        <button id="scrollToCatalogBtn" class="btn-primary">Ver productos</button>
+        <button id="adminToggleBtn" class="btn-ghost">Abrir panel de gestión</button>
+      </div>
+      <div class="hero-meta">
+        <span class="meta-pill">Actualización automática desde planilla</span>
+        <span class="meta-pill">Imágenes desde Google Drive</span>
+        <span class="meta-pill">Filtros, búsqueda y vista ampliada</span>
+      </div>
+    </div>
+    <div class="hero-preview">
+      <div class="hero-card">
+        <div class="hero-card-image"></div>
+        <div class="hero-card-body">
+          <h2>Experiencia de vitrina digital</h2>
+          <p>Panel responsivo con tarjetas, modal de detalle y efectos sutiles para destacar cada producto.</p>
         </div>
       </div>
     </div>
+  </div>
+</header>
 
-    <!-- Overlay de carga -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-      <div class="loader"></div>
-      <p>Cargando catálogo en tiempo real...</p>
+<main class="layout">
+  <section class="filters-section" id="catalogFilters">
+    <div class="filters-header">
+      <h2>Explorar productos</h2>
+      <p>Aplicar búsqueda, filtros y ordenamientos en tiempo real sobre la información de la hoja de cálculo.</p>
     </div>
+    <div class="filters-grid">
+      <div class="filter-item">
+        <label for="searchInput">Buscar</label>
+        <input type="search" id="searchInput" placeholder="Nombre, descripción o palabra clave">
+      </div>
+      <div class="filter-item">
+        <label for="filterCategory">Categoría</label>
+        <select id="filterCategory">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="sortSelect">Ordenar por</label>
+        <select id="sortSelect">
+          <option value="name-asc">Nombre A a Z</option>
+          <option value="name-desc">Nombre Z a A</option>
+          <option value="price-asc">Precio menor a mayor</option>
+          <option value="price-desc">Precio mayor a menor</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>&nbsp;</label>
+        <button id="clearFiltersBtn" class="btn-secondary">Limpiar filtros</button>
+      </div>
+    </div>
+  </section>
 
-    <!-- Toast de mensajes -->
-    <div id="toast" class="toast hidden"></div>
+  <section class="catalog-section" id="catalogSection">
+    <div id="catalogGrid" class="catalog-grid"></div>
+    <div id="emptyState" class="empty-state hidden">
+      <h3>No se encontraron productos</h3>
+      <p>Verifique los filtros aplicados o registre nuevos productos desde el panel de gestión.</p>
+    </div>
+  </section>
 
-    <?!= include('footer'); ?>
-    <?!= include('scripts'); ?>
-  </body>
+  <aside class="admin-panel collapsed" id="adminPanel">
+    <div class="admin-header">
+      <h2>Gestión de productos</h2>
+      <p>Formulario conectado a la hoja Productos para crear, actualizar y eliminar registros. Se utilizan los campos ID_Producto, Nombre_Producto, Categoria, Descripcion_Corta, Precio e Imagen_URL_1.</p>
+    </div>
+    <form id="productForm" class="form-grid">
+      <div class="field">
+        <label for="ID_Producto">ID Producto *</label>
+        <input type="text" id="ID_Producto" required>
+      </div>
+      <div class="field">
+        <label for="Nombre_Producto">Nombre del producto *</label>
+        <input type="text" id="Nombre_Producto" required>
+      </div>
+      <div class="field">
+        <label for="Categoria">Categoría</label>
+        <input type="text" id="Categoria" placeholder="Ejemplo: Cuidado facial, Suplementos">
+      </div>
+      <div class="field field-full">
+        <label for="Descripcion_Corta">Descripción corta</label>
+        <textarea id="Descripcion_Corta" rows="3" placeholder="Beneficios principales, modo de uso o componentes clave"></textarea>
+      </div>
+      <div class="field">
+        <label for="Precio">Precio</label>
+        <input type="number" id="Precio" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label for="Imagen">Imagen del producto</label>
+        <input type="file" id="Imagen" accept="image/*">
+        <small>Si se selecciona una imagen se cargará en la carpeta de Drive configurada y se actualizará el vínculo.</small>
+      </div>
+      <div class="field field-actions">
+        <button type="submit" class="btn-primary">Guardar o actualizar</button>
+        <button type="button" id="deleteBtn" class="btn-danger">Eliminar</button>
+        <button type="button" id="resetFormBtn" class="btn-ghost">Limpiar formulario</button>
+      </div>
+    </form>
+  </aside>
+</main>
+
+<div id="productModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal-dialog">
+    <button class="modal-close" id="modalCloseBtn" aria-label="Cerrar detalle">&times;</button>
+    <div class="modal-body">
+      <div class="modal-image-wrap">
+        <img id="modalImage" alt="Imagen del producto seleccionado">
+      </div>
+      <div class="modal-info">
+        <h3 id="modalTitle"></h3>
+        <p id="modalCategory" class="modal-category"></p>
+        <p id="modalDescription" class="modal-description"></p>
+        <p id="modalPrice" class="modal-price"></p>
+        <p id="modalId" class="modal-id"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay hidden">
+  <div class="loader"></div>
+  <p>Cargando catálogo en tiempo real...</p>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>Catálogo conectado a datos alojados en Google Sheets y Google Drive mediante Apps Script o servicios compatibles.</p>
+    <p class="footer-meta">© <span id="footerYear"></span> NaturaVida.</p>
+  </div>
+</footer>
+
+<script>
+(function() {
+  "use strict";
+
+  var productos = [];
+  var categorias = [];
+  var currentFilters = {
+    search: "",
+    category: "",
+    sort: "name-asc"
+  };
+
+  function callServer(functionName) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(resolve, reject) {
+      if (typeof google === "undefined" || !google.script || !google.script.run) {
+        reject(new Error("Entorno de Apps Script no disponible para " + functionName + "."));
+        return;
+      }
+      var runner = google.script.run
+        .withSuccessHandler(function(result) { resolve(result); })
+        .withFailureHandler(function(err) { reject(err); });
+      runner[functionName].apply(runner, args);
+    });
+  }
+
+  function init() {
+    var yearSpan = document.getElementById("footerYear");
+    if (yearSpan) {
+      yearSpan.textContent = new Date().getFullYear();
+    }
+
+    var adminPanel = document.getElementById("adminPanel");
+    if (adminPanel) {
+      adminPanel.addEventListener("click", function(e) {
+        if (adminPanel.classList.contains("collapsed") && !e.target.closest("form")) {
+          adminPanel.classList.remove("collapsed");
+        }
+      });
+    }
+
+    var adminToggleBtn = document.getElementById("adminToggleBtn");
+    if (adminToggleBtn && adminPanel) {
+      adminToggleBtn.addEventListener("click", function() {
+        adminPanel.classList.toggle("collapsed");
+        scrollIntoViewSmooth(adminPanel);
+      });
+    }
+
+    var scrollBtn = document.getElementById("scrollToCatalogBtn");
+    if (scrollBtn) {
+      scrollBtn.addEventListener("click", function() {
+        var target = document.getElementById("catalogFilters") || document.getElementById("catalogSection");
+        if (target) {
+          scrollIntoViewSmooth(target);
+        }
+      });
+    }
+
+    var searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function(e) {
+        currentFilters.search = e.target.value || "";
+        renderCatalog();
+      });
+    }
+
+    var filterCategory = document.getElementById("filterCategory");
+    if (filterCategory) {
+      filterCategory.addEventListener("change", function(e) {
+        currentFilters.category = e.target.value || "";
+        renderCatalog();
+      });
+    }
+
+    var sortSelect = document.getElementById("sortSelect");
+    if (sortSelect) {
+      sortSelect.addEventListener("change", function(e) {
+        currentFilters.sort = e.target.value || "name-asc";
+        renderCatalog();
+      });
+    }
+
+    var clearBtn = document.getElementById("clearFiltersBtn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        currentFilters.search = "";
+        currentFilters.category = "";
+        currentFilters.sort = "name-asc";
+        if (searchInput) searchInput.value = "";
+        if (filterCategory) filterCategory.value = "";
+        if (sortSelect) sortSelect.value = "name-asc";
+        renderCatalog();
+      });
+    }
+
+    bindAdminForm();
+    bindModal();
+    loadInitialData();
+  }
+
+  function scrollIntoViewSmooth(element) {
+    try {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      element.scrollIntoView();
+    }
+  }
+
+  function loadInitialData() {
+    showLoading(true);
+    Promise.all([
+      callServer("getAllProducts"),
+      callServer("getDistinctCategories")
+    ])
+      .then(function(results) {
+        productos = Array.isArray(results[0]) ? results[0] : [];
+        categorias = Array.isArray(results[1]) ? results[1] : [];
+        renderCategoryFilter();
+        renderCatalog();
+        showToast("Catálogo sincronizado con la hoja de cálculo.");
+      })
+      .catch(function(err) {
+        showToast(formatError(err), true);
+        renderCatalog();
+      })
+      .finally(function() {
+        showLoading(false);
+      });
+  }
+
+  function renderCategoryFilter() {
+    var select = document.getElementById("filterCategory");
+    if (!select) return;
+    var current = select.value;
+    select.innerHTML = '<option value="">Todas las categorías</option>';
+    categorias.forEach(function(cat) {
+      var option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      select.appendChild(option);
+    });
+    if (current && categorias.indexOf(current) !== -1) {
+      select.value = current;
+    }
+  }
+
+  function renderCatalog() {
+    var grid = document.getElementById("catalogGrid");
+    var empty = document.getElementById("emptyState");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+
+    var lista = productos.slice();
+
+    if (currentFilters.search) {
+      var term = currentFilters.search.toLowerCase();
+      lista = lista.filter(function(p) {
+        var nombre = String(p.Nombre_Producto || "").toLowerCase();
+        var desc = String(p.Descripcion_Corta || "").toLowerCase();
+        var cat = String(p.Categoria || "").toLowerCase();
+        return nombre.indexOf(term) !== -1 || desc.indexOf(term) !== -1 || cat.indexOf(term) !== -1;
+      });
+    }
+
+    if (currentFilters.category) {
+      lista = lista.filter(function(p) {
+        return String(p.Categoria || "") === String(currentFilters.category);
+      });
+    }
+
+    lista.sort(function(a, b) {
+      var key = currentFilters.sort;
+      if (key === "name-asc" || key === "name-desc") {
+        var na = String(a.Nombre_Producto || "").toLowerCase();
+        var nb = String(b.Nombre_Producto || "").toLowerCase();
+        if (na < nb) return key === "name-asc" ? -1 : 1;
+        if (na > nb) return key === "name-asc" ? 1 : -1;
+        return 0;
+      }
+      if (key === "price-asc" || key === "price-desc") {
+        var pa = parseFloat(a.Precio || 0);
+        var pb = parseFloat(b.Precio || 0);
+        if (isNaN(pa)) pa = 0;
+        if (isNaN(pb)) pb = 0;
+        return key === "price-asc" ? pa - pb : pb - pa;
+      }
+      return 0;
+    });
+
+    if (!lista.length) {
+      if (empty) empty.classList.remove("hidden");
+      return;
+    } else if (empty) {
+      empty.classList.add("hidden");
+    }
+
+    lista.forEach(function(p) {
+      var card = document.createElement("article");
+      card.className = "product-card";
+
+      var tagText = p.Categoria ? String(p.Categoria) : "Producto NaturaVida";
+
+      var figure = document.createElement("div");
+      figure.className = "product-image-wrap";
+
+      var img = document.createElement("img");
+      img.alt = "Imagen del producto " + (p.Nombre_Producto || "");
+      if (p.Imagen_URL_1) {
+        img.src = p.Imagen_URL_1;
+      } else {
+        img.src = "https://via.placeholder.com/400x260.png?text=NaturaVida";
+      }
+      figure.appendChild(img);
+
+      var tag = document.createElement("div");
+      tag.className = "product-tag";
+      tag.textContent = tagText;
+
+      var title = document.createElement("h3");
+      title.className = "product-title";
+      title.textContent = p.Nombre_Producto || "Producto sin nombre";
+
+      var cat = document.createElement("p");
+      cat.className = "product-category";
+      cat.textContent = p.Categoria || "";
+
+      var priceRow = document.createElement("div");
+      priceRow.className = "product-price-row";
+
+      var price = document.createElement("div");
+      price.className = "product-price";
+      if (p.Precio && !isNaN(p.Precio)) {
+        var num = Number(p.Precio);
+        price.textContent = "Gs. " + num.toLocaleString("es-PY", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } else {
+        price.textContent = "Consultar";
+      }
+
+      var id = document.createElement("div");
+      id.className = "product-id";
+      id.textContent = "ID " + (p.ID_Producto || "");
+
+      priceRow.appendChild(price);
+      priceRow.appendChild(id);
+
+      card.appendChild(figure);
+      card.appendChild(tag);
+      card.appendChild(title);
+      card.appendChild(cat);
+      card.appendChild(priceRow);
+
+      card.addEventListener("click", function() {
+        openModal(p);
+        fillForm(p);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function bindAdminForm() {
+    var form = document.getElementById("productForm");
+    var deleteBtn = document.getElementById("deleteBtn");
+    var resetBtn = document.getElementById("resetFormBtn");
+
+    if (!form) return;
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      var producto = collectFormData();
+      if (!producto.ID_Producto || !producto.Nombre_Producto) {
+        showToast("ID_Producto y Nombre_Producto son obligatorios.", true);
+        return;
+      }
+
+      var fileInput = document.getElementById("Imagen");
+      var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+      showLoading(true);
+
+      if (file) {
+        toBase64(file)
+          .then(function(base64) {
+            return callServer("saveProduct", producto, base64);
+          })
+          .then(function(msg) {
+            showToast(msg || "Producto guardado.");
+            form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      } else {
+        callServer("saveProduct", producto, null)
+          .then(function(msg) {
+            showToast(msg || "Producto guardado.");
+            form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      }
+    });
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", function() {
+        var idInput = document.getElementById("ID_Producto");
+        var id = idInput ? idInput.value.trim() : "";
+        if (!id) {
+          showToast("Ingrese el ID_Producto a eliminar.", true);
+          return;
+        }
+        var ok = typeof window !== "undefined" ? window.confirm("¿Desea eliminar este producto?") : true;
+        if (!ok) return;
+
+        showLoading(true);
+        callServer("deleteProduct", id)
+          .then(function(msg) {
+            showToast(msg || "Producto eliminado.");
+            if (idInput) idInput.value = "";
+            if (form) form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function() {
+        form.reset();
+      });
+    }
+  }
+
+  function collectFormData() {
+    var producto = {};
+    producto.ID_Producto = getValue("ID_Producto");
+    producto.Nombre_Producto = getValue("Nombre_Producto");
+    producto.Categoria = getValue("Categoria");
+    producto.Descripcion_Corta = getValue("Descripcion_Corta");
+    var precioStr = getValue("Precio");
+    producto.Precio = precioStr ? Number(precioStr) : "";
+    return producto;
+  }
+
+  function getValue(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+
+  function fillForm(p) {
+    setValue("ID_Producto", p.ID_Producto || "");
+    setValue("Nombre_Producto", p.Nombre_Producto || "");
+    setValue("Categoria", p.Categoria || "");
+    setValue("Descripcion_Corta", p.Descripcion_Corta || "");
+    setValue("Precio", p.Precio || "");
+  }
+
+  function setValue(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value;
+  }
+
+  function bindModal() {
+    var modal = document.getElementById("productModal");
+    var backdrop = document.getElementById("modalBackdrop");
+    var closeBtn = document.getElementById("modalCloseBtn");
+
+    if (!modal) return;
+
+    function close() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    if (backdrop) backdrop.addEventListener("click", close);
+    if (closeBtn) closeBtn.addEventListener("click", close);
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", function(e) {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+          close();
+        }
+      });
+    }
+  }
+
+  function openModal(p) {
+    var modal = document.getElementById("productModal");
+    if (!modal) return;
+
+    var image = document.getElementById("modalImage");
+    var title = document.getElementById("modalTitle");
+    var category = document.getElementById("modalCategory");
+    var description = document.getElementById("modalDescription");
+    var price = document.getElementById("modalPrice");
+    var id = document.getElementById("modalId");
+
+    if (image) {
+      if (p.Imagen_URL_1) {
+        image.src = p.Imagen_URL_1;
+      } else {
+        image.src = "https://via.placeholder.com/600x400.png?text=NaturaVida";
+      }
+    }
+    if (title) title.textContent = p.Nombre_Producto || "Producto sin nombre";
+    if (category) category.textContent = p.Categoria ? "Categoría: " + p.Categoria : "";
+    if (description) {
+      var desc = p.Descripcion_Corta || "";
+      description.textContent = desc || "Sin descripción registrada en la hoja de cálculo.";
+    }
+    if (price) {
+      if (p.Precio && !isNaN(p.Precio)) {
+        var num = Number(p.Precio);
+        price.textContent = "Precio sugerido: Gs. " + num.toLocaleString("es-PY", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } else {
+        price.textContent = "Consultar precio.";
+      }
+    }
+    if (id) id.textContent = p.ID_Producto ? "ID de referencia: " + p.ID_Producto : "";
+
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function toBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = function(error) { reject(error); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showLoading(show) {
+    var overlay = document.getElementById("loadingOverlay");
+    if (!overlay) return;
+    if (show) overlay.classList.remove("hidden");
+    else overlay.classList.add("hidden");
+  }
+
+  function showToast(message, isError) {
+    var toast = document.getElementById("toast");
+    if (!toast) return;
+    toast.textContent = message;
+    if (isError) toast.classList.add("error");
+    else toast.classList.remove("error");
+    toast.classList.add("visible");
+    setTimeout(function() {
+      toast.classList.remove("visible");
+    }, 3200);
+  }
+
+  function formatError(err) {
+    if (!err) return "Ocurrió un error no especificado.";
+    if (typeof err === "string") return err;
+    if (err.message) return err.message;
+    if (err.toString) return err.toString();
+    try {
+      return JSON.stringify(err);
+    } catch (e) {
+      return "Error desconocido.";
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
 </html>
