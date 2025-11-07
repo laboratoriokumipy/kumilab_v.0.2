@@ -1,0 +1,500 @@
+<script>
+(function() {
+  "use strict";
+
+  var productos = [];
+  var categorias = [];
+  var currentFilters = {
+    search: "",
+    category: "",
+    sort: "name-asc"
+  };
+
+  function callServer(functionName) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(resolve, reject) {
+      if (typeof google === "undefined" || !google.script || !google.script.run) {
+        reject(new Error("Entorno de Apps Script no disponible."));
+        return;
+      }
+      var runner = google.script.run
+        .withSuccessHandler(function(result) { resolve(result); })
+        .withFailureHandler(function(err) { reject(err); });
+      runner[functionName].apply(runner, args);
+    });
+  }
+
+  function init() {
+    var yearSpan = document.getElementById("footerYear");
+    if (yearSpan) {
+      yearSpan.textContent = new Date().getFullYear();
+    }
+
+    var adminPanel = document.getElementById("adminPanel");
+    if (adminPanel) {
+      adminPanel.addEventListener("click", function(e) {
+        if (adminPanel.classList.contains("collapsed") && !e.target.closest("form")) {
+          adminPanel.classList.remove("collapsed");
+        }
+      });
+    }
+
+    var adminToggleBtn = document.getElementById("adminToggleBtn");
+    if (adminToggleBtn && adminPanel) {
+      adminToggleBtn.addEventListener("click", function() {
+        adminPanel.classList.toggle("collapsed");
+        scrollIntoViewSmooth(adminPanel);
+      });
+    }
+
+    var scrollBtn = document.getElementById("scrollToCatalogBtn");
+    if (scrollBtn) {
+      scrollBtn.addEventListener("click", function() {
+        var target = document.getElementById("catalogFilters") || document.getElementById("catalogSection");
+        if (target) {
+          scrollIntoViewSmooth(target);
+        }
+      });
+    }
+
+    var searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function(e) {
+        currentFilters.search = e.target.value || "";
+        renderCatalog();
+      });
+    }
+
+    var filterCategory = document.getElementById("filterCategory");
+    if (filterCategory) {
+      filterCategory.addEventListener("change", function(e) {
+        currentFilters.category = e.target.value || "";
+        renderCatalog();
+      });
+    }
+
+    var sortSelect = document.getElementById("sortSelect");
+    if (sortSelect) {
+      sortSelect.addEventListener("change", function(e) {
+        currentFilters.sort = e.target.value || "name-asc";
+        renderCatalog();
+      });
+    }
+
+    var clearBtn = document.getElementById("clearFiltersBtn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        currentFilters.search = "";
+        currentFilters.category = "";
+        currentFilters.sort = "name-asc";
+        if (searchInput) searchInput.value = "";
+        if (filterCategory) filterCategory.value = "";
+        if (sortSelect) sortSelect.value = "name-asc";
+        renderCatalog();
+      });
+    }
+
+    bindAdminForm();
+    bindModal();
+
+    loadInitialData();
+  }
+
+  function scrollIntoViewSmooth(element) {
+    try {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      element.scrollIntoView();
+    }
+  }
+
+  function loadInitialData() {
+    showLoading(true);
+    Promise.all([
+      callServer("getAllProducts"),
+      callServer("getDistinctCategories")
+    ])
+      .then(function(results) {
+        productos = Array.isArray(results[0]) ? results[0] : [];
+        categorias = Array.isArray(results[1]) ? results[1] : [];
+        renderCategoryFilter();
+        renderCatalog();
+        showToast("Catálogo sincronizado con la hoja de cálculo.");
+      })
+      .catch(function(err) {
+        showToast(formatError(err), true);
+      })
+      .finally(function() {
+        showLoading(false);
+      });
+  }
+
+  function renderCategoryFilter() {
+    var select = document.getElementById("filterCategory");
+    if (!select) return;
+    var current = select.value;
+    select.innerHTML = '<option value="">Todas las categorías</option>';
+    categorias.forEach(function(cat) {
+      var option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      select.appendChild(option);
+    });
+    if (current && categorias.indexOf(current) !== -1) {
+      select.value = current;
+    }
+  }
+
+  function renderCatalog() {
+    var grid = document.getElementById("catalogGrid");
+    var empty = document.getElementById("emptyState");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+
+    var lista = productos.slice();
+
+    if (currentFilters.search) {
+      var term = currentFilters.search.toLowerCase();
+      lista = lista.filter(function(p) {
+        var nombre = String(p.Nombre_Producto || "").toLowerCase();
+        var desc = String(p.Descripcion_Corta || "").toLowerCase();
+        var cat = String(p.Categoria || "").toLowerCase();
+        return nombre.indexOf(term) !== -1 || desc.indexOf(term) !== -1 || cat.indexOf(term) !== -1;
+      });
+    }
+
+    if (currentFilters.category) {
+      lista = lista.filter(function(p) {
+        return String(p.Categoria || "") === String(currentFilters.category);
+      });
+    }
+
+    lista.sort(function(a, b) {
+      var key = currentFilters.sort;
+      if (key === "name-asc" || key === "name-desc") {
+        var na = String(a.Nombre_Producto || "").toLowerCase();
+        var nb = String(b.Nombre_Producto || "").toLowerCase();
+        if (na < nb) return key === "name-asc" ? -1 : 1;
+        if (na > nb) return key === "name-asc" ? 1 : -1;
+        return 0;
+      }
+      if (key === "price-asc" || key === "price-desc") {
+        var pa = parseFloat(a.Precio || 0);
+        var pb = parseFloat(b.Precio || 0);
+        if (isNaN(pa)) pa = 0;
+        if (isNaN(pb)) pb = 0;
+        return key === "price-asc" ? pa - pb : pb - pa;
+      }
+      return 0;
+    });
+
+    if (!lista.length) {
+      if (empty) {
+        empty.classList.remove("hidden");
+      }
+      return;
+    } else if (empty) {
+      empty.classList.add("hidden");
+    }
+
+    lista.forEach(function(p) {
+      var card = document.createElement("article");
+      card.className = "product-card";
+
+      var tagText = p.Categoria ? String(p.Categoria) : "Producto NaturaVida";
+
+      var figure = document.createElement("div");
+      figure.className = "product-image-wrap";
+
+      var img = document.createElement("img");
+      img.alt = "Imagen del producto " + (p.Nombre_Producto || "");
+      if (p.Imagen_URL_1) {
+        img.src = p.Imagen_URL_1;
+      } else {
+        img.src = "https://via.placeholder.com/400x260.png?text=NaturaVida";
+      }
+      figure.appendChild(img);
+
+      var tag = document.createElement("div");
+      tag.className = "product-tag";
+      tag.textContent = tagText;
+
+      var title = document.createElement("h3");
+      title.className = "product-title";
+      title.textContent = p.Nombre_Producto || "Producto sin nombre";
+
+      var cat = document.createElement("p");
+      cat.className = "product-category";
+      cat.textContent = p.Categoria || "";
+
+      var priceRow = document.createElement("div");
+      priceRow.className = "product-price-row";
+
+      var price = document.createElement("div");
+      price.className = "product-price";
+      if (p.Precio && !isNaN(p.Precio)) {
+        var num = Number(p.Precio);
+        price.textContent = "Gs. " + num.toLocaleString("es-PY", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } else {
+        price.textContent = "Consultar";
+      }
+
+      var id = document.createElement("div");
+      id.className = "product-id";
+      id.textContent = "ID " + (p.ID_Producto || "");
+
+      priceRow.appendChild(price);
+      priceRow.appendChild(id);
+
+      card.appendChild(figure);
+      card.appendChild(tag);
+      card.appendChild(title);
+      card.appendChild(cat);
+      card.appendChild(priceRow);
+
+      card.addEventListener("click", function() {
+        openModal(p);
+        fillForm(p);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function bindAdminForm() {
+    var form = document.getElementById("productForm");
+    var deleteBtn = document.getElementById("deleteBtn");
+    var resetBtn = document.getElementById("resetFormBtn");
+
+    if (!form) return;
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      var producto = collectFormData();
+      if (!producto.ID_Producto || !producto.Nombre_Producto) {
+        showToast("ID_Producto y Nombre_Producto son obligatorios.", true);
+        return;
+      }
+
+      var fileInput = document.getElementById("Imagen");
+      var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+      showLoading(true);
+
+      if (file) {
+        toBase64(file)
+          .then(function(base64) {
+            return callServer("saveProduct", producto, base64);
+          })
+          .then(function(msg) {
+            showToast(msg || "Producto guardado.");
+            form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      } else {
+        callServer("saveProduct", producto, null)
+          .then(function(msg) {
+            showToast(msg || "Producto guardado.");
+            form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      }
+    });
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", function() {
+        var idInput = document.getElementById("ID_Producto");
+        var id = idInput ? idInput.value.trim() : "";
+        if (!id) {
+          showToast("Ingrese el ID_Producto a eliminar.", true);
+          return;
+        }
+        var ok = typeof window !== "undefined" ? window.confirm("¿Desea eliminar este producto?") : true;
+        if (!ok) return;
+
+        showLoading(true);
+        callServer("deleteProduct", id)
+          .then(function(msg) {
+            showToast(msg || "Producto eliminado.");
+            if (idInput) idInput.value = "";
+            if (form) form.reset();
+            loadInitialData();
+          })
+          .catch(function(err) {
+            showToast(formatError(err), true);
+          })
+          .finally(function() {
+            showLoading(false);
+          });
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function() {
+        form.reset();
+      });
+    }
+  }
+
+  function collectFormData() {
+    var producto = {};
+    producto.ID_Producto = getValue("ID_Producto");
+    producto.Nombre_Producto = getValue("Nombre_Producto");
+    producto.Categoria = getValue("Categoria");
+    producto.Descripcion_Corta = getValue("Descripcion_Corta");
+    var precioStr = getValue("Precio");
+    producto.Precio = precioStr ? Number(precioStr) : "";
+    return producto;
+  }
+
+  function getValue(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+
+  function fillForm(p) {
+    setValue("ID_Producto", p.ID_Producto || "");
+    setValue("Nombre_Producto", p.Nombre_Producto || "");
+    setValue("Categoria", p.Categoria || "");
+    setValue("Descripcion_Corta", p.Descripcion_Corta || "");
+    setValue("Precio", p.Precio || "");
+  }
+
+  function setValue(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value;
+  }
+
+  function bindModal() {
+    var modal = document.getElementById("productModal");
+    var backdrop = document.getElementById("modalBackdrop");
+    var closeBtn = document.getElementById("modalCloseBtn");
+
+    if (!modal) return;
+
+    function close() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener("click", close);
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener("click", close);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+          if (!modal.classList.contains("hidden")) {
+            close();
+          }
+        }
+      });
+    }
+  }
+
+  function openModal(p) {
+    var modal = document.getElementById("productModal");
+    if (!modal) return;
+
+    var image = document.getElementById("modalImage");
+    var title = document.getElementById("modalTitle");
+    var category = document.getElementById("modalCategory");
+    var description = document.getElementById("modalDescription");
+    var price = document.getElementById("modalPrice");
+    var id = document.getElementById("modalId");
+
+    if (image) {
+      if (p.Imagen_URL_1) {
+        image.src = p.Imagen_URL_1;
+      } else {
+        image.src = "https://via.placeholder.com/600x400.png?text=NaturaVida";
+      }
+    }
+    if (title) title.textContent = p.Nombre_Producto || "Producto sin nombre";
+    if (category) category.textContent = p.Categoria ? "Categoría: " + p.Categoria : "";
+    if (description) {
+      var desc = p.Descripcion_Corta || "";
+      description.textContent = desc || "Sin descripción registrada en la hoja de cálculo.";
+    }
+    if (price) {
+      if (p.Precio && !isNaN(p.Precio)) {
+        var num = Number(p.Precio);
+        price.textContent = "Precio sugerido: Gs. " + num.toLocaleString("es-PY", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } else {
+        price.textContent = "Consultar precio.";
+      }
+    }
+    if (id) id.textContent = p.ID_Producto ? "ID de referencia: " + p.ID_Producto : "";
+
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function toBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = function(error) { reject(error); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showLoading(show) {
+    var overlay = document.getElementById("loadingOverlay");
+    if (!overlay) return;
+    if (show) {
+      overlay.classList.remove("hidden");
+    } else {
+      overlay.classList.add("hidden");
+    }
+  }
+
+  function showToast(message, isError) {
+    var toast = document.getElementById("toast");
+    if (!toast) return;
+    toast.textContent = message;
+    if (isError) {
+      toast.classList.add("error");
+    } else {
+      toast.classList.remove("error");
+    }
+    toast.classList.add("visible");
+    setTimeout(function() {
+      toast.classList.remove("visible");
+    }, 3200);
+  }
+
+  function formatError(err) {
+    if (!err) return "Ocurrió un error no especificado.";
+    if (typeof err === "string") return err;
+    if (err.message) return err.message;
+    if (err.toString) return err.toString();
+    try {
+      return JSON.stringify(err);
+    } catch (e) {
+      return "Error desconocido.";
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

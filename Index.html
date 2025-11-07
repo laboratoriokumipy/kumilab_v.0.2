@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>NaturaVida · Catálogo Interactivo</title>
+    <?!= include('Head'); ?>
+  </head>
+  <body>
+    <?!= include('Navbar'); ?>
+
+    <header class="hero">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>Catálogo NaturaVida</h1>
+          <p>Explorá un catálogo dinámico de productos naturales, conectado en tiempo real con Google Sheets y Google Drive para una gestión ágil, ordenada y visualmente elegante.</p>
+          <div class="hero-actions">
+            <button id="scrollToCatalogBtn" class="btn-primary">Ver productos</button>
+            <button id="adminToggleBtn" class="btn-ghost">Abrir panel de gestión</button>
+          </div>
+          <div class="hero-meta">
+            <span class="meta-pill">Actualización automática desde planilla</span>
+            <span class="meta-pill">Imágenes desde Google Drive</span>
+            <span class="meta-pill">Filtros, búsqueda y vista ampliada</span>
+          </div>
+        </div>
+        <div class="hero-preview">
+          <div class="hero-card">
+            <div class="hero-card-image"></div>
+            <div class="hero-card-body">
+              <h2>Experiencia de vitrina digital</h2>
+              <p>Panel responsivo con tarjetas, modal de detalle y efectos sutiles para destacar cada producto.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="filters-section" id="catalogFilters">
+        <div class="filters-header">
+          <h2>Explorar productos</h2>
+          <p>Aplicar búsqueda, filtros y ordenamientos en tiempo real sobre la información de la hoja de cálculo.</p>
+        </div>
+
+        <div class="filters-grid">
+          <div class="filter-item">
+            <label for="searchInput">Buscar</label>
+            <input type="search" id="searchInput" placeholder="Nombre, descripción o palabra clave">
+          </div>
+
+          <div class="filter-item">
+            <label for="filterCategory">Categoría</label>
+            <select id="filterCategory">
+              <option value="">Todas las categorías</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="sortSelect">Ordenar por</label>
+            <select id="sortSelect">
+              <option value="name-asc">Nombre A a Z</option>
+              <option value="name-desc">Nombre Z a A</option>
+              <option value="price-asc">Precio menor a mayor</option>
+              <option value="price-desc">Precio mayor a menor</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label>&nbsp;</label>
+            <button id="clearFiltersBtn" class="btn-secondary">Limpiar filtros</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="catalog-section" id="catalogSection">
+        <div id="catalogGrid" class="catalog-grid">
+          <!-- Tarjetas generadas dinámicamente -->
+        </div>
+        <div id="emptyState" class="empty-state hidden">
+          <h3>No se encontraron productos</h3>
+          <p>Verifique los filtros aplicados o registre nuevos productos desde el panel de gestión.</p>
+        </div>
+      </section>
+
+      <aside class="admin-panel collapsed" id="adminPanel">
+        <div class="admin-header">
+          <h2>Gestión de productos</h2>
+          <p>Formulario conectado a la hoja <strong>Productos</strong> para crear, actualizar y eliminar registros. Se utilizan los campos ID_Producto, Nombre_Producto, Categoria, Descripcion_Corta, Precio e Imagen_URL_1.</p>
+        </div>
+
+        <form id="productForm" class="form-grid">
+          <div class="field">
+            <label for="ID_Producto">ID Producto *</label>
+            <input type="text" id="ID_Producto" required>
+          </div>
+
+          <div class="field">
+            <label for="Nombre_Producto">Nombre del producto *</label>
+            <input type="text" id="Nombre_Producto" required>
+          </div>
+
+          <div class="field">
+            <label for="Categoria">Categoría</label>
+            <input type="text" id="Categoria" placeholder="Ejemplo: Cuidado facial, Suplementos">
+          </div>
+
+          <div class="field field-full">
+            <label for="Descripcion_Corta">Descripción corta</label>
+            <textarea id="Descripcion_Corta" rows="3" placeholder="Beneficios principales, modo de uso o componentes clave"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="Precio">Precio</label>
+            <input type="number" id="Precio" step="0.01" min="0" placeholder="0.00">
+          </div>
+
+          <div class="field">
+            <label for="Imagen">Imagen del producto</label>
+            <input type="file" id="Imagen" accept="image/*">
+            <small>Si se selecciona una imagen, se cargará en la carpeta de Drive configurada y se actualizará el vínculo.</small>
+          </div>
+
+          <div class="field field-actions">
+            <button type="submit" class="btn-primary">Guardar o actualizar</button>
+            <button type="button" id="deleteBtn" class="btn-danger">Eliminar</button>
+            <button type="button" id="resetFormBtn" class="btn-ghost">Limpiar formulario</button>
+          </div>
+        </form>
+      </aside>
+    </main>
+
+    <!-- Modal de detalle de producto -->
+    <div id="productModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" id="modalBackdrop"></div>
+      <div class="modal-dialog">
+        <button class="modal-close" id="modalCloseBtn" aria-label="Cerrar detalle">&times;</button>
+        <div class="modal-body">
+          <div class="modal-image-wrap">
+            <img id="modalImage" alt="Imagen del producto seleccionado">
+          </div>
+          <div class="modal-info">
+            <h3 id="modalTitle"></h3>
+            <p id="modalCategory" class="modal-category"></p>
+            <p id="modalDescription" class="modal-description"></p>
+            <p id="modalPrice" class="modal-price"></p>
+            <p id="modalId" class="modal-id"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay de carga -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loader"></div>
+      <p>Cargando catálogo en tiempo real...</p>
+    </div>
+
+    <!-- Toast de mensajes -->
+    <div id="toast" class="toast hidden"></div>
+
+    <?!= include('Footer'); ?>
+    <?!= include('Scripts'); ?>
+  </body>
+</html>
